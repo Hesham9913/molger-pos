@@ -154,14 +154,10 @@ const CallCenter: React.FC = () => {
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Bar */}
       <CallCenterTopBar
-        currentAgent={currentAgent}
-        currentBranch={currentBranch}
-        incomingCalls={incomingCalls}
-        notifications={notifications}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        agent={currentAgent}
+        branch={currentBranch}
+        unreadNotifications={notifications.filter(n => !n.read).length}
         searchInputRef={searchInputRef}
-        shortcuts={CALL_CENTER_SHORTCUTS}
       />
 
       {/* Main Content */}

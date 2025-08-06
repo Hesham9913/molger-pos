@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -100,6 +101,15 @@ app.use('/api/branches', require('./routes/branches'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/audit', require('./routes/audit'));
+
+// Serve static files from React build
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  });
+}
 
 // Health check
 app.get('/health', (req, res) => {
