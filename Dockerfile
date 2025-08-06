@@ -1,59 +1,61 @@
-# Multi-stage build for production
+# Multi-stage build for React + Node.js app
 FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Copy root package files
 COPY package.json package-lock.json* ./
 RUN npm ci --only=production
 
-# Rebuild the source code only when needed
+# Copy client package files
+COPY client/package.json client/package-lock.json* ./client/
+WORKDIR /app/client
+RUN npm ci --legacy-peer-deps
+
+# Build stage
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all files
 COPY . .
 
-# Build the client
+# Copy node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/client/node_modules ./client/node_modules
+
+# Build the React app
 WORKDIR /app/client
-RUN npm ci
 RUN npm run build
 
-# Production image, copy all the files and run the app
+# Production stage
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
 
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 1001 nodejs
 
-# Copy the public folder
-COPY --from=builder /app/client/public ./client/public
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-
-COPY --from=builder --chown=nextjs:nodejs /app/client/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/client/.next/static ./client/.next/static
+# Copy built React app
+COPY --from=builder /app/client/build ./client/build
 
 # Copy server files
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/shared ./shared
 
-USER nextjs
+# Set ownership
+RUN chown -R nodejs:nodejs /app
 
-EXPOSE 3000 5000
+USER nodejs
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+EXPOSE 5000
+
+ENV PORT 5000
 
 CMD ["npm", "start"] 
