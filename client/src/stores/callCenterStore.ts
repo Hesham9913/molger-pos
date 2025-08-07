@@ -68,7 +68,8 @@ interface CallCenterStore extends CallCenterState {
   getUnreadNotificationsCount: () => number;
 }
 
-const initialState: CallCenterState = {
+// Function to create initial state with fresh dates
+const createInitialState = (): CallCenterState => ({
   currentAgent: null,
   currentBranch: null,
   incomingCalls: [],
@@ -88,17 +89,29 @@ const initialState: CallCenterState = {
   isDrawerOpen: false,
   isNewCustomerModalOpen: false,
   isNewOrderModalOpen: false,
-};
+});
 
 export const useCallCenterStore = create<CallCenterStore>()(
   devtools(
     (set, get) => ({
-      ...initialState,
+      ...createInitialState(),
 
       // Initialize
       initializeCallCenter: (user: User, branchId: string) => {
-        set({ currentAgent: user });
-        // Load initial data here
+        try {
+          set({ 
+            currentAgent: user,
+            currentBranch: null // Will be set separately when branch data is loaded
+          });
+          // Load initial data here
+        } catch (error) {
+          console.error('Error in initializeCallCenter:', error);
+          // Set minimal safe state
+          set({ 
+            currentAgent: user,
+            currentBranch: null
+          });
+        }
       },
 
       setCurrentAgent: (agent: User) => {
@@ -198,7 +211,7 @@ export const useCallCenterStore = create<CallCenterStore>()(
       },
 
       resetFilters: () => {
-        set({ filters: initialState.filters, searchQuery: '' });
+        set({ filters: createInitialState().filters, searchQuery: '' });
       },
 
       // UI State
