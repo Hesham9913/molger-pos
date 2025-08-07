@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,32 +23,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { useCallCenterStore } from './stores/callCenterStore';
 
 // Theme
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-        },
-      },
-    },
-  },
-});
+import { modernTheme } from './theme/modernTheme';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,7 +77,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={modernTheme}>
         <CssBaseline />
         <Router>
           <Box sx={{ height: '100vh', overflow: 'hidden' }}>
@@ -183,8 +158,27 @@ function App() {
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#363636',
-              color: '#fff',
+              background: '#212529',
+              color: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 215, 0, 0.2)',
+              fontSize: '14px',
+              fontWeight: '500',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+            },
+            success: {
+              style: {
+                background: '#212529',
+                color: '#00d4aa',
+                border: '1px solid rgba(0, 212, 170, 0.3)',
+              },
+            },
+            error: {
+              style: {
+                background: '#212529',
+                color: '#ff3b30',
+                border: '1px solid rgba(255, 59, 48, 0.3)',
+              },
             },
           }}
         />

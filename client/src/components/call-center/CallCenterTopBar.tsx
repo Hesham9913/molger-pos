@@ -1,33 +1,35 @@
 import React, { useState } from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
-  Avatar,
+  Container,
+  Typography,
+  TextField,
+  InputAdornment,
   IconButton,
   Badge,
+  Chip,
+  Avatar,
   Menu,
   MenuItem,
   Divider,
-  Chip,
+  ListItemIcon,
+  ListItemText,
   Tooltip,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
-  Notifications as NotificationsIcon,
-  Settings as SettingsIcon,
-  Help as HelpIcon,
-  AccountCircle as AccountIcon,
-  Language as LanguageIcon,
-  Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon,
-  VolumeUp as SoundIcon,
-  VolumeOff as MuteIcon,
-  Logout as LogoutIcon,
-  Keyboard as KeyboardIcon,
+  Search as SearchIcon,
+  NotificationsOutlined,
+  SettingsOutlined,
+  HelpOutlineOutlined,
+  PersonOutlineOutlined,
+  KeyboardOutlined,
+  VolumeUpOutlined,
+  VolumeOffOutlined,
+  LogoutOutlined,
+  BusinessOutlined,
+  AccessTimeOutlined,
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 // Types
@@ -37,10 +39,8 @@ import { User, Branch } from '../../shared/types';
 import { useAuth } from '../../hooks/useAuth';
 import { useCallCenterStore } from '../../stores/callCenterStore';
 
-// Components
-import NotificationDrawer from './NotificationDrawer';
-import SettingsModal from './SettingsModal';
-import HelpModal from './HelpModal';
+// Theme
+import { colors } from '../../theme/modernTheme';
 
 interface CallCenterTopBarProps {
   agent: User;
@@ -55,271 +55,374 @@ const CallCenterTopBar: React.FC<CallCenterTopBarProps> = ({
   unreadNotifications,
   searchInputRef,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { logout } = useAuth();
-  const { setNewCustomerModalOpen, setNewOrderModalOpen } = useCallCenterStore();
-
-  // State
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { searchQuery, setSearchQuery } = useCallCenterStore();
+  
+  // State for menus and modals
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [settingsMenuAnchor, setSettingsMenuAnchor] = useState<null | HTMLElement>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
-  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [language, setLanguage] = useState('en');
 
   // Keyboard shortcuts
-  useHotkeys('n', () => setNewOrderModalOpen(true));
-  useHotkeys('c', () => setNewCustomerModalOpen(true));
-  useHotkeys('f', () => searchInputRef.current?.focus());
-  useHotkeys('b', () => setNotificationDrawerOpen(true));
-  useHotkeys('h', () => setHelpModalOpen(true));
-  useHotkeys('s', () => setSettingsModalOpen(true));
+  useHotkeys('ctrl+/', () => setHelpModalOpen(true));
+  useHotkeys('ctrl+,', () => setSettingsMenuAnchor(document.body));
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setProfileMenuAnchor(event.currentTarget);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleProfileMenuClose = () => {
+    setProfileMenuAnchor(null);
+  };
+
+  const handleSettingsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setSettingsMenuAnchor(event.currentTarget);
+  };
+
+  const handleSettingsMenuClose = () => {
+    setSettingsMenuAnchor(null);
   };
 
   const handleLogout = () => {
+    handleProfileMenuClose();
     logout();
-    handleMenuClose();
-  };
-
-  const handleEndShift = () => {
-    // Handle end shift logic
-    handleMenuClose();
-  };
-
-  const handleToggleSound = () => {
-    setIsSoundEnabled(!isSoundEnabled);
-  };
-
-  const handleToggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-  };
-
-  const getShiftStatusColor = () => {
-    // Logic to determine shift status
-    return 'success';
-  };
-
-  const getShiftStatusText = () => {
-    // Logic to determine shift status text
-    return 'On Shift';
   };
 
   return (
-    <>
-      <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          {/* Left Section - Logo and Branch */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Logo */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                '&:hover': { opacity: 0.8 },
-              }}
-              onClick={() => window.location.href = '/call-center'}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 'bold',
-                  color: 'primary.main',
-                  fontSize: { xs: '1.1rem', sm: '1.25rem' },
-                }}
-              >
-                H POS
-              </Typography>
-            </Box>
-
-            {/* Branch Info */}
-            {!isMobile && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Branch:
-                </Typography>
-                <Chip
-                  label={branch?.name || 'No Branch'}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-              </Box>
-            )}
-          </Box>
-
-          {/* Center Section - Search (hidden on mobile) */}
-          {!isMobile && (
-            <Box sx={{ flex: 1, maxWidth: 400, mx: 2 }}>
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search orders, customers, phone numbers... (F)"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
-              />
-            </Box>
-          )}
-
-          {/* Right Section - Agent Info and Actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Notifications */}
-            <Tooltip title="Notifications (B)">
-              <IconButton
-                color="inherit"
-                onClick={() => setNotificationDrawerOpen(true)}
-                sx={{ position: 'relative' }}
-              >
-                <Badge badgeContent={unreadNotifications} color="error">
-                  <NotificationsIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-
-            {/* Sound Toggle */}
-            <Tooltip title={isSoundEnabled ? "Mute Sounds" : "Enable Sounds"}>
-              <IconButton color="inherit" onClick={handleToggleSound}>
-                {isSoundEnabled ? <SoundIcon /> : <MuteIcon />}
-              </IconButton>
-            </Tooltip>
-
-            {/* Settings */}
-            <Tooltip title="Settings (S)">
-              <IconButton
-                color="inherit"
-                onClick={() => setSettingsModalOpen(true)}
-              >
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
-
-            {/* Help */}
-            <Tooltip title="Help (H)">
-              <IconButton
-                color="inherit"
-                onClick={() => setHelpModalOpen(true)}
-              >
-                <HelpIcon />
-              </IconButton>
-            </Tooltip>
-
-            {/* Agent Profile */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
-              <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                  {agent.name}
-                </Typography>
-                <Chip
-                  label={getShiftStatusText()}
-                  size="small"
-                  color={getShiftStatusColor() as any}
-                  variant="outlined"
-                />
-              </Box>
-              
-              <Tooltip title="Agent Menu">
-                <IconButton
-                  onClick={handleMenuOpen}
-                  sx={{ p: 0.5 }}
+    <Box
+      sx={{
+        borderBottom: `1px solid ${colors.white[600]}`,
+        backgroundColor: colors.white[50],
+        backdropFilter: 'blur(8px)',
+        zIndex: 1100,
+      }}
+    >
+      <Container maxWidth={false} sx={{ px: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            py: 2,
+            minHeight: 64,
+          }}
+        >
+          {/* Left Section - Branch Info */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 2,
+                    backgroundColor: colors.black[800],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                  <Avatar
-                    src={agent.photo}
-                    sx={{ width: 32, height: 32 }}
-                  >
-                    {agent.name.charAt(0)}
-                  </Avatar>
+                  <BusinessOutlined sx={{ color: colors.yellow[500], fontSize: 18 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: colors.black[800] }}>
+                    Branch: {branch?.name || 'No Branch'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.black[500] }}>
+                    {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString()}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider orientation="vertical" flexItem sx={{ height: 40 }} />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Chip
+                  icon={<AccessTimeOutlined sx={{ fontSize: 16 }} />}
+                  label="On Shift"
+                  size="small"
+                  sx={{
+                    backgroundColor: `rgba(0, 212, 170, 0.1)`,
+                    color: '#00d4aa',
+                    border: `1px solid rgba(0, 212, 170, 0.3)`,
+                    fontWeight: 600,
+                    '& .MuiChip-icon': {
+                      color: '#00d4aa',
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          </motion.div>
+
+          {/* Center Section - Search */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <TextField
+              ref={searchInputRef}
+              placeholder="Search orders, customers, phone numbers... (F)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="small"
+              sx={{
+                width: 400,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: colors.white[100],
+                  border: `1px solid ${colors.white[600]}`,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    backgroundColor: colors.white[200],
+                    borderColor: colors.yellow[400],
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: colors.white[50],
+                    borderColor: colors.yellow[500],
+                    boxShadow: `0 0 0 3px rgba(255, 215, 0, 0.1)`,
+                  },
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: '14px',
+                  color: colors.black[700],
+                  '&::placeholder': {
+                    color: colors.black[400],
+                    opacity: 1,
+                  },
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: colors.black[400], fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </motion.div>
+
+          {/* Right Section - Actions */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* Sound Toggle */}
+              <Tooltip title={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
+                <IconButton
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  sx={{
+                    color: soundEnabled ? colors.yellow[600] : colors.black[400],
+                    backgroundColor: soundEnabled ? `rgba(255, 215, 0, 0.1)` : 'transparent',
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: soundEnabled 
+                        ? `rgba(255, 215, 0, 0.2)` 
+                        : `rgba(0, 0, 0, 0.05)`,
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  {soundEnabled ? <VolumeUpOutlined /> : <VolumeOffOutlined />}
                 </IconButton>
               </Tooltip>
-            </Box>
-          </Box>
-        </Toolbar>
-      </AppBar>
 
-      {/* Agent Menu */}
+              {/* Notifications */}
+              <Tooltip title="Notifications">
+                <IconButton
+                  onClick={() => setNotificationDrawerOpen(true)}
+                  sx={{
+                    color: unreadNotifications > 0 ? colors.yellow[600] : colors.black[400],
+                    backgroundColor: unreadNotifications > 0 ? `rgba(255, 215, 0, 0.1)` : 'transparent',
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: unreadNotifications > 0 
+                        ? `rgba(255, 215, 0, 0.2)` 
+                        : `rgba(0, 0, 0, 0.05)`,
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  <Badge badgeContent={unreadNotifications} color="error">
+                    <NotificationsOutlined />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+
+              {/* Settings */}
+              <Tooltip title="Settings">
+                <IconButton
+                  onClick={handleSettingsMenuOpen}
+                  sx={{
+                    color: colors.black[400],
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: `rgba(0, 0, 0, 0.05)`,
+                      color: colors.black[600],
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  <SettingsOutlined />
+                </IconButton>
+              </Tooltip>
+
+              {/* Help */}
+              <Tooltip title="Help & Shortcuts">
+                <IconButton
+                  onClick={() => setHelpModalOpen(true)}
+                  sx={{
+                    color: colors.black[400],
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: `rgba(0, 0, 0, 0.05)`,
+                      color: colors.black[600],
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  <HelpOutlineOutlined />
+                </IconButton>
+              </Tooltip>
+
+              <Divider orientation="vertical" flexItem sx={{ height: 32, mx: 1 }} />
+
+              {/* Profile */}
+              <Box
+                onClick={handleProfileMenuOpen}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  backgroundColor: 'transparent',
+                  border: `1px solid ${colors.white[600]}`,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    backgroundColor: colors.white[200],
+                    borderColor: colors.yellow[400],
+                  },
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    background: `linear-gradient(135deg, ${colors.yellow[500]} 0%, ${colors.yellow[600]} 100%)`,
+                    color: colors.black[800],
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {agent.name?.charAt(0) || 'U'}
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: colors.black[700],
+                      fontWeight: 600,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {agent.name || 'User'}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: colors.black[500],
+                      fontSize: '11px',
+                    }}
+                  >
+                    {agent.role || 'Agent'}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </motion.div>
+        </Box>
+      </Container>
+
+      {/* Profile Menu */}
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+        anchorEl={profileMenuAnchor}
+        open={Boolean(profileMenuAnchor)}
+        onClose={handleProfileMenuClose}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minWidth: 200,
+            border: `1px solid ${colors.white[600]}`,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          },
         }}
       >
-        <MenuItem onClick={handleMenuClose}>
-          <AccountIcon sx={{ mr: 1 }} />
-          Profile
+        <MenuItem onClick={handleProfileMenuClose}>
+          <ListItemIcon>
+            <PersonOutlineOutlined fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Profile</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleEndShift}>
-          <LogoutIcon sx={{ mr: 1 }} />
-          End Shift
+        <MenuItem onClick={handleProfileMenuClose}>
+          <ListItemIcon>
+            <KeyboardOutlined fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Shortcuts</ListItemText>
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleLogout}>
-          <LogoutIcon sx={{ mr: 1 }} />
-          Logout
+        <MenuItem onClick={handleLogout} sx={{ color: colors.error }}>
+          <ListItemIcon>
+            <LogoutOutlined fontSize="small" sx={{ color: colors.error }} />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
 
-      {/* Notification Drawer */}
-      <NotificationDrawer
-        open={notificationDrawerOpen}
-        onClose={() => setNotificationDrawerOpen(false)}
-        onMarkAsRead={(notificationId) => {
-          // Handle mark as read
+      {/* Settings Menu */}
+      <Menu
+        anchorEl={settingsMenuAnchor}
+        open={Boolean(settingsMenuAnchor)}
+        onClose={handleSettingsMenuClose}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minWidth: 180,
+            border: `1px solid ${colors.white[600]}`,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          },
         }}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        open={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
-        isSoundEnabled={isSoundEnabled}
-        onToggleSound={handleToggleSound}
-        isDarkMode={isDarkMode}
-        onToggleTheme={handleToggleTheme}
-        language={language}
-        onLanguageChange={handleLanguageChange}
-      />
-
-      {/* Help Modal */}
-      <HelpModal
-        open={helpModalOpen}
-        onClose={() => setHelpModalOpen(false)}
-        shortcuts={[
-          { key: 'N', action: 'New Order', description: 'Create new order' },
-          { key: 'C', action: 'New Customer', description: 'Create new customer' },
-          { key: 'F', action: 'Search', description: 'Focus search field' },
-          { key: 'B', action: 'Notifications', description: 'Open notifications' },
-          { key: 'H', action: 'Help', description: 'Show this help' },
-          { key: 'S', action: 'Settings', description: 'Open settings' },
-          { key: 'ESC', action: 'Close', description: 'Close current modal/drawer' },
-        ]}
-      />
-    </>
+      >
+        <MenuItem onClick={handleSettingsMenuClose}>
+          <ListItemText>Language</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSettingsMenuClose}>
+          <ListItemText>Theme</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSettingsMenuClose}>
+          <ListItemText>Notifications</ListItemText>
+        </MenuItem>
+      </Menu>
+    </Box>
   );
 };
 
-export default CallCenterTopBar; 
+export default CallCenterTopBar;
