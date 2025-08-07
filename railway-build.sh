@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo "🚀 Building H POS Application..."
+echo "🚀 Railway Build Script for H POS"
 
-# Set npm configuration for better reliability
+# Configure npm for better reliability
 npm config set registry https://registry.npmjs.org/
 npm config set fetch-retries 5
 npm config set fetch-retry-mintimeout 20000
@@ -17,11 +17,10 @@ echo "📦 Installing client dependencies..."
 cd client
 npm ci --legacy-peer-deps --no-audit --no-fund --network-timeout=100000
 
-# Build client
-echo "🔨 Building client..."
+# Build client for production
+echo "🔨 Building client for production..."
 npm run build
 
 cd ..
 
-echo "✅ Build completed successfully!"
-echo "🚀 Ready for deployment!"
+echo "✅ Railway build completed successfully!"

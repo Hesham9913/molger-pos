@@ -5,8 +5,8 @@ NPM_CONFIG_PRODUCTION = "false"
 [phases.install]
 dependsOn = []
 cmds = [
-    "npm ci --include=dev",
-    "cd client && npm ci --legacy-peer-deps"
+    "chmod +x railway-build.sh",
+    "./railway-build.sh"
 ]
 
 [phases.build]
