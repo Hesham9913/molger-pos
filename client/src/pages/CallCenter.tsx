@@ -368,9 +368,14 @@ const CallCenter: React.FC = () => {
           <NewOrderModal
             open={isNewOrderModalOpen}
             onClose={() => setNewOrderModalOpen(false)}
-            onCreateOrder={async (order) => {
+            onSubmit={async (order) => {
               console.log('Order created:', order);
               setNewOrderModalOpen(false);
+            }}
+            currentBranch={{
+              id: '1',
+              name: 'Main Branch',
+              address: '123 Main St, Riyadh',
             }}
           />
         )}

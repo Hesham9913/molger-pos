@@ -52,6 +52,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { colors } from '../theme/modernTheme';
 import { alpha } from '@mui/material/styles';
 
@@ -219,6 +220,12 @@ const ConsoleLayout: React.FC<ConsoleLayoutProps> = ({ children }) => {
   const isActiveRoute = (path: string) => location.pathname === path;
   const isActiveSubRoute = (path: string) => location.pathname.startsWith(path);
 
+  // Keyboard shortcuts
+  useHotkeys('ctrl+b, cmd+b', (e) => {
+    e.preventDefault();
+    handleSidebarToggle();
+  });
+
   // Filtered navigation based on search
   const filteredNavigation = useMemo(() => {
     if (!searchQuery) return consoleNavigation;
@@ -233,9 +240,31 @@ const ConsoleLayout: React.FC<ConsoleLayoutProps> = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
+      {/* Backdrop Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1199,
+            }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <Drawer
-        variant={isMobile ? 'temporary' : 'persistent'}
+        variant="temporary"
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         PaperProps={{
@@ -243,6 +272,14 @@ const ConsoleLayout: React.FC<ConsoleLayoutProps> = ({ children }) => {
             width: 280,
             backgroundColor: colors.white[50],
             borderRight: `1px solid ${colors.white[600]}`,
+            zIndex: 1200,
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           },
         }}
       >
@@ -357,7 +394,15 @@ const ConsoleLayout: React.FC<ConsoleLayoutProps> = ({ children }) => {
       </Drawer>
 
       {/* Main Content */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box 
+        sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          width: '100%',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
         {/* Top Bar */}
         <AppBar
           position="static"
@@ -371,7 +416,14 @@ const ConsoleLayout: React.FC<ConsoleLayoutProps> = ({ children }) => {
             <IconButton
               edge="start"
               onClick={handleSidebarToggle}
-              sx={{ color: colors.black[700] }}
+              sx={{ 
+                color: colors.black[700],
+                backgroundColor: sidebarOpen ? alpha(colors.yellow[500], 0.1) : 'transparent',
+                '&:hover': {
+                  backgroundColor: alpha(colors.yellow[500], 0.1),
+                },
+                transition: 'all 0.2s ease',
+              }}
             >
               <MenuIcon />
             </IconButton>

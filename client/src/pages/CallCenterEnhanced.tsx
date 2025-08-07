@@ -1,33 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Container,
   Grid,
+  Typography,
   Card,
   CardContent,
-  Typography,
-  Chip,
   IconButton,
-  Button,
   TextField,
   InputAdornment,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
-  Checkbox,
+  Chip,
+  Avatar,
+  Badge,
+  Tooltip,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Divider,
-  Tooltip,
-  Badge,
-  Avatar,
-  Fab,
   Drawer,
   Tabs,
   Tab,
@@ -36,266 +33,248 @@ import {
   ListItemButton,
   ListItemAvatar,
   ListItemSecondaryAction,
+  Switch,
+  FormControlLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
-  Phone as PhoneIcon,
+  Add as AddIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
   MoreVert as MoreIcon,
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  Print as PrintIcon,
-  Notifications as NotificationsIcon,
-  Person as PersonIcon,
-  CheckCircle as CheckCircleIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  ContentCopy as DuplicateIcon,
+  Archive as ArchiveIcon,
   Visibility as ViewIcon,
-  Message as MessageIcon,
-  LocalShipping as DeliveryIcon,
-  Flag as FlagIcon,
+  VisibilityOff as ViewOffIcon,
   Star as StarIcon,
+  LocalOffer as PromoIcon,
+  Inventory as InventoryIcon,
+  Category as CategoryIcon,
+  Restaurant as MenuIcon,
+  Extension as ModifierIcon,
+  CardGiftcard as GiftCardIcon,
+  Group as GroupIcon,
+  Settings as SettingsIcon,
+  Download as DownloadIcon,
+  Upload as UploadIcon,
+  Refresh as RefreshIcon,
+  Print as PrintIcon,
+  Share as ShareIcon,
+  CheckCircle as CheckIcon,
   Warning as WarningIcon,
-  Schedule as ScheduleIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  ExpandMore as ExpandMoreIcon,
+  DragIndicator as DragIcon,
+  Sort as SortIcon,
+  FilterList as FilterListIcon,
+  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon,
+  GridView as GridViewIcon,
+  List as ListViewIcon,
+  SortByAlpha as SortAlphaIcon,
+  SortByAlpha as SortAlphaDescIcon,
+  AttachMoney as PriceIcon,
+  Schedule as TimeIcon,
   LocationOn as LocationIcon,
-  Payment as PaymentIcon,
-  Receipt as ReceiptIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Loyalty as LoyaltyIcon,
+  ShoppingCart as ShoppingCartIcon,
+  CheckCircle as CheckCircleIcon,
+  Schedule as ScheduleIcon,
   Close as CloseIcon,
   Save as SaveIcon,
-  ContentCopy as DuplicateIcon,
-  Reorder as ReorderIcon,
+  Cancel as CancelIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
+  Keyboard as KeyboardIcon,
+  VolumeUp as SoundIcon,
+  VolumeOff as MuteIcon,
+  CheckCircle as SuccessIcon,
+  LocalShipping as DeliveryIcon,
+  TakeoutDining as PickupIcon,
+  Restaurant as DineInIcon,
+  Notifications as NotificationsIcon,
+  Message as MessageIcon,
   Block as BlockIcon,
   WhatsApp as WhatsAppIcon,
   Sms as SmsIcon,
-  Email as EmailIcon,
   History as HistoryIcon,
   Note as NoteIcon,
   Map as MapIcon,
   Timer as TimerIcon,
   Assignment as AssignmentIcon,
   DirectionsCar as CarIcon,
-  AccessTime as TimeIcon,
   AttachMoney as MoneyIcon,
   CreditCard as CardIcon,
   AccountBalance as WalletIcon,
   ReceiptLong as ReceiptLongIcon,
   Print as PrintReceiptIcon,
-  Share as ShareIcon,
-  Download as DownloadIcon,
-  Upload as UploadIcon,
-  Settings as SettingsIcon,
   Help as HelpIcon,
-  Keyboard as KeyboardIcon,
-  VolumeUp as SoundIcon,
-  VolumeOff as MuteIcon,
-  Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { colors } from '../theme/modernTheme';
 import { alpha } from '@mui/material/styles';
+import NewOrderModal from '../components/call-center/NewOrderModal';
+import OrderCreation from './OrderCreation';
 
-// Enhanced Call Center with extreme detail
 const CallCenterEnhanced: React.FC = () => {
   // State
-  const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [orderMenuAnchor, setOrderMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedOrderForMenu, setSelectedOrderForMenu] = useState<any>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [orderMenuAnchor, setOrderMenuAnchor] = useState<null | HTMLElement>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // New order workflow state
+  const [showNewOrderModal, setShowNewOrderModal] = useState(false);
+  const [showOrderCreation, setShowOrderCreation] = useState(false);
+  const [currentOrderData, setCurrentOrderData] = useState<any>(null);
 
   // Mock data
   const mockOrders = [
     {
       id: 'ORD-001',
-      customerName: 'Ahmed Al-Rashid',
+      customerName: 'Ahmed Hassan',
       customerPhone: '+966501234567',
-      customerAddress: 'Riyadh, Saudi Arabia',
-      items: [
-        { name: 'Chicken Burger', quantity: 2, price: 45.00 },
-        { name: 'French Fries', quantity: 1, price: 15.00 },
-        { name: 'Coca Cola', quantity: 2, price: 10.00 },
-      ],
-      total: 125.00,
-      status: 'pending',
-      paymentMethod: 'cash',
       orderType: 'delivery',
-      createdAt: new Date('2024-01-20T10:30:00'),
-      estimatedDelivery: new Date('2024-01-20T11:30:00'),
-      notes: 'Please deliver to the main gate',
-      driver: null,
+      status: 'pending',
+      total: 85.50,
+      items: 3,
       waitTime: 15,
+      driver: 'Mohammed Ali',
+      createdAt: new Date(Date.now() - 15 * 60 * 1000),
+      address: '123 King Fahd Rd, Riyadh',
+      tags: ['STAFF', 'VIP'],
     },
     {
       id: 'ORD-002',
-      customerName: 'Fatima Hassan',
+      customerName: 'Sarah Johnson',
       customerPhone: '+966509876543',
-      customerAddress: 'Jeddah, Saudi Arabia',
-      items: [
-        { name: 'Beef Burger', quantity: 1, price: 55.00 },
-        { name: 'Margherita Pizza', quantity: 1, price: 65.00 },
-      ],
-      total: 120.00,
-      status: 'confirmed',
-      paymentMethod: 'card',
       orderType: 'pickup',
-      createdAt: new Date('2024-01-20T10:15:00'),
-      estimatedDelivery: new Date('2024-01-20T10:45:00'),
-      notes: 'Extra cheese on pizza',
-      driver: 'Mohammed Ali',
-      waitTime: 8,
+      status: 'confirmed',
+      total: 120.00,
+      items: 4,
+      waitTime: 25,
+      driver: null,
+      createdAt: new Date(Date.now() - 25 * 60 * 1000),
+      address: null,
+      tags: ['REGULAR'],
     },
     {
       id: 'ORD-003',
-      customerName: 'Mohammed Ali',
+      customerName: 'Omar Khalil',
       customerPhone: '+966507654321',
-      customerAddress: 'Dammam, Saudi Arabia',
-      items: [
-        { name: 'Chocolate Cake', quantity: 1, price: 25.00 },
-        { name: 'Coca Cola', quantity: 1, price: 10.00 },
-      ],
-      total: 35.00,
+      orderType: 'dine-in',
       status: 'preparing',
-      paymentMethod: 'wallet',
-      orderType: 'delivery',
-      createdAt: new Date('2024-01-20T10:00:00'),
-      estimatedDelivery: new Date('2024-01-20T10:45:00'),
-      notes: 'Happy birthday!',
-      driver: 'Ahmed Hassan',
-      waitTime: 12,
-    },
-    {
-      id: 'ORD-004',
-      customerName: 'Sara Ahmed',
-      customerPhone: '+966505555555',
-      customerAddress: 'Riyadh, Saudi Arabia',
-      items: [
-        { name: 'Chicken Burger', quantity: 3, price: 45.00 },
-        { name: 'French Fries', quantity: 2, price: 15.00 },
-        { name: 'Coca Cola', quantity: 3, price: 10.00 },
-      ],
-      total: 195.00,
-      status: 'ready',
-      paymentMethod: 'cash',
-      orderType: 'delivery',
-      createdAt: new Date('2024-01-20T09:45:00'),
-      estimatedDelivery: new Date('2024-01-20T10:30:00'),
-      notes: 'Large family order',
-      driver: 'Omar Khalil',
-      waitTime: 5,
-    },
-    {
-      id: 'ORD-005',
-      customerName: 'Khalid Omar',
-      customerPhone: '+966506666666',
-      customerAddress: 'Jeddah, Saudi Arabia',
-      items: [
-        { name: 'Margherita Pizza', quantity: 2, price: 65.00 },
-        { name: 'Coca Cola', quantity: 2, price: 10.00 },
-      ],
-      total: 150.00,
-      status: 'delivered',
-      paymentMethod: 'card',
-      orderType: 'delivery',
-      createdAt: new Date('2024-01-20T09:30:00'),
-      estimatedDelivery: new Date('2024-01-20T10:15:00'),
-      notes: 'Extra crispy crust',
-      driver: 'Yusuf Ahmed',
-      waitTime: 0,
+      total: 65.00,
+      items: 2,
+      waitTime: 10,
+      driver: null,
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
+      address: null,
+      tags: ['NEW'],
     },
   ];
 
-  // Initialize orders
-  useEffect(() => {
-    setOrders(mockOrders);
-  }, []);
-
-  // Auto refresh effect
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      // Simulate new orders or status updates
-      console.log('Auto refreshing orders...');
-    }, refreshInterval * 1000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
-
-  // Handlers
-  const handleFilterChange = (filterId: string) => {
-    setActiveFilter(filterId);
-    setPage(0);
+  const currentBranch = {
+    id: '1',
+    name: 'Main Branch',
+    address: '123 Main St, Riyadh',
   };
 
+  // Filtered orders
+  const filteredOrders = mockOrders.filter(order => {
+    const matchesSearch = !searchQuery || 
+      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customerPhone.includes(searchQuery) ||
+      order.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = activeFilter === 'all' || order.status === activeFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Handle new order button click
+  const handleNewOrderClick = () => {
+    setShowNewOrderModal(true);
+  };
+
+  // Handle order modal submission
+  const handleOrderModalSubmit = (orderData: any) => {
+    setCurrentOrderData(orderData);
+    setShowNewOrderModal(false);
+    setShowOrderCreation(true);
+  };
+
+  // Handle back from order creation
+  const handleOrderCreationBack = () => {
+    setShowOrderCreation(false);
+    setCurrentOrderData(null);
+  };
+
+  // Handle filter change
+  const handleFilterChange = (filterId: string) => {
+    setActiveFilter(filterId);
+  };
+
+  // Handle order selection
   const handleOrderSelect = (order: any) => {
     setSelectedOrder(order);
     setShowOrderDetails(true);
   };
 
+  // Handle order menu open
   const handleOrderMenuOpen = (event: React.MouseEvent<HTMLElement>, order: any) => {
     setOrderMenuAnchor(event.currentTarget);
     setSelectedOrderForMenu(order);
   };
 
+  // Handle order menu close
   const handleOrderMenuClose = () => {
     setOrderMenuAnchor(null);
     setSelectedOrderForMenu(null);
   };
 
+  // Handle bulk action
   const handleBulkAction = (action: string) => {
-    console.log('Bulk action:', action, 'on orders:', selectedOrders);
+    console.log(`Bulk action: ${action}`);
   };
 
+  // Handle select all
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const filteredOrders = getFilteredOrders();
-      setSelectedOrders(filteredOrders.map(order => order.id));
-    } else {
-      setSelectedOrders([]);
-    }
+    // Implementation for select all
   };
 
+  // Handle select order
   const handleSelectOrder = (orderId: string) => {
-    setSelectedOrders(prev => 
-      prev.includes(orderId) 
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
-    );
+    // Implementation for select order
   };
 
+  // Get filtered orders
   const getFilteredOrders = () => {
-    let filtered = orders;
-    
-    // Apply status filter
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === activeFilter);
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(order => 
-        order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerPhone.includes(searchQuery) ||
-        order.id.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return filtered;
+    return filteredOrders;
   };
 
+  // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return colors.warning;
@@ -308,6 +287,7 @@ const CallCenterEnhanced: React.FC = () => {
     }
   };
 
+  // Get status label
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending': return 'Pending';
@@ -320,13 +300,20 @@ const CallCenterEnhanced: React.FC = () => {
     }
   };
 
+  // Format wait time
   const formatWaitTime = (waitTime: Date) => {
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - waitTime.getTime()) / 1000 / 60);
-    return `${diff} min`;
+    return formatDistanceToNow(waitTime, { addSuffix: true });
   };
 
-  const filteredOrders = getFilteredOrders();
+  // If showing order creation, render that instead
+  if (showOrderCreation && currentOrderData) {
+    return (
+      <OrderCreation
+        orderData={currentOrderData}
+        onBack={handleOrderCreationBack}
+      />
+    );
+  }
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -373,7 +360,7 @@ const CallCenterEnhanced: React.FC = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => setShowNewOrderDialog(true)}
+                onClick={handleNewOrderClick}
                 sx={{
                   backgroundColor: colors.yellow[500],
                   color: colors.black[800],
@@ -382,7 +369,7 @@ const CallCenterEnhanced: React.FC = () => {
                   },
                 }}
               >
-                New Order
+                New Call Center Order
               </Button>
             </Box>
           </Grid>
@@ -417,12 +404,12 @@ const CallCenterEnhanced: React.FC = () => {
           <Grid item xs={8}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               {[
-                { id: 'all', label: 'All', count: orders.length },
-                { id: 'pending', label: 'Pending', count: orders.filter(o => o.status === 'pending').length },
-                { id: 'confirmed', label: 'Confirmed', count: orders.filter(o => o.status === 'confirmed').length },
-                { id: 'preparing', label: 'Preparing', count: orders.filter(o => o.status === 'preparing').length },
-                { id: 'ready', label: 'Ready', count: orders.filter(o => o.status === 'ready').length },
-                { id: 'delivered', label: 'Delivered', count: orders.filter(o => o.status === 'delivered').length },
+                { id: 'all', label: 'All', count: mockOrders.length },
+                { id: 'pending', label: 'Pending', count: mockOrders.filter(o => o.status === 'pending').length },
+                { id: 'confirmed', label: 'Confirmed', count: mockOrders.filter(o => o.status === 'confirmed').length },
+                { id: 'preparing', label: 'Preparing', count: mockOrders.filter(o => o.status === 'preparing').length },
+                { id: 'ready', label: 'Ready', count: mockOrders.filter(o => o.status === 'ready').length },
+                { id: 'delivered', label: 'Delivered', count: mockOrders.filter(o => o.status === 'delivered').length },
               ].map((filter) => (
                 <Button
                   key={filter.id}
@@ -442,9 +429,9 @@ const CallCenterEnhanced: React.FC = () => {
                     size="small"
                     sx={{
                       ml: 1,
-                      backgroundColor: alpha(colors.black[800], 0.1),
-                      color: colors.black[800],
-                      fontSize: '0.625rem',
+                      backgroundColor: activeFilter === filter.id ? colors.black[800] : colors.black[400],
+                      color: 'white',
+                      fontSize: '0.7rem',
                     }}
                   />
                 </Button>
@@ -455,80 +442,84 @@ const CallCenterEnhanced: React.FC = () => {
       </Box>
 
       {/* Orders Table */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
         <TableContainer>
-          <Table stickyHeader>
+          <Table>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selectedOrders.length > 0 && selectedOrders.length < filteredOrders.length}
-                    checked={selectedOrders.length === filteredOrders.length}
-                    onChange={handleSelectAll}
-                  />
-                </TableCell>
                 <TableCell>Order</TableCell>
                 <TableCell>Customer</TableCell>
-                <TableCell>Items</TableCell>
-                <TableCell align="right">Total</TableCell>
+                <TableCell>Type</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Wait Time</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell align="right">Wait Time</TableCell>
                 <TableCell>Driver</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow
+              {getFilteredOrders().map((order) => (
+                <TableRow 
                   key={order.id}
                   hover
                   onClick={() => handleOrderSelect(order)}
                   sx={{ cursor: 'pointer' }}
                 >
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedOrders.includes(order.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectOrder(order.id);
-                      }}
-                    />
-                  </TableCell>
                   <TableCell>
                     <Box>
-                      <Typography variant="body1" fontWeight={600}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {order.id}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {format(order.createdAt, 'HH:mm')}
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDistanceToNow(order.createdAt, { addSuffix: true })}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Box>
-                      <Typography variant="body1" fontWeight={600}>
-                        {order.customerName}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {order.customerPhone}
-                      </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem' }}>
+                        {order.customerName.charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {order.customerName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {order.customerPhone}
+                        </Typography>
+                        {order.tags && (
+                          <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                            {order.tags.map((tag: string) => (
+                              <Chip
+                                key={tag}
+                                label={tag}
+                                size="small"
+                                sx={{
+                                  backgroundColor: tag === 'VIP' ? colors.yellow[500] : colors.info,
+                                  color: 'white',
+                                  fontSize: '0.6rem',
+                                  height: 16,
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Box>
-                      <Typography variant="body2">
-                        {order.items.length} items
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {order.items[0]?.name}
-                        {order.items.length > 1 && ` +${order.items.length - 1} more`}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {order.orderType === 'delivery' ? (
+                        <DeliveryIcon sx={{ fontSize: 16, color: colors.info }} />
+                      ) : order.orderType === 'pickup' ? (
+                        <PickupIcon sx={{ fontSize: 16, color: colors.warning }} />
+                      ) : (
+                        <DineInIcon sx={{ fontSize: 16, color: colors.success }} />
+                      )}
+                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {order.orderType}
                       </Typography>
                     </Box>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body1" fontWeight={600} color={colors.yellow[600]}>
-                      SAR {order.total.toFixed(2)}
-                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -537,11 +528,20 @@ const CallCenterEnhanced: React.FC = () => {
                       sx={{
                         backgroundColor: alpha(getStatusColor(order.status), 0.1),
                         color: getStatusColor(order.status),
+                        fontWeight: 600,
                       }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
+                  <TableCell align="right">
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: colors.yellow[600] }}>
+                      SAR {order.total.toFixed(2)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {order.items} items
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {order.waitTime} min
                     </Typography>
                   </TableCell>
@@ -580,23 +580,36 @@ const CallCenterEnhanced: React.FC = () => {
       </Box>
 
       {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add"
+      <Box
         sx={{
           position: 'fixed',
           bottom: 24,
           right: 24,
-          backgroundColor: colors.yellow[500],
-          color: colors.black[800],
-          '&:hover': {
-            backgroundColor: colors.yellow[400],
-          },
         }}
-        onClick={() => setShowNewOrderDialog(true)}
       >
-        <AddIcon />
-      </Fab>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          onClick={handleNewOrderClick}
+          sx={{
+            backgroundColor: colors.yellow[500],
+            color: colors.black[800],
+            borderRadius: 3,
+            px: 3,
+            py: 1.5,
+            boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)',
+            '&:hover': {
+              backgroundColor: colors.yellow[400],
+              transform: 'translateY(-2px)',
+              boxShadow: '0 12px 40px rgba(255, 215, 0, 0.4)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          New Order
+        </Button>
+      </Box>
 
       {/* Order Menu */}
       <Menu
@@ -636,6 +649,14 @@ const CallCenterEnhanced: React.FC = () => {
           Cancel Order
         </MenuItem>
       </Menu>
+
+      {/* New Order Modal */}
+      <NewOrderModal
+        open={showNewOrderModal}
+        onClose={() => setShowNewOrderModal(false)}
+        onSubmit={handleOrderModalSubmit}
+        currentBranch={currentBranch}
+      />
     </Box>
   );
 };
