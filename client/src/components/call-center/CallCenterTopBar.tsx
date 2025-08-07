@@ -44,7 +44,7 @@ import HelpModal from './HelpModal';
 
 interface CallCenterTopBarProps {
   agent: User;
-  branch: Branch;
+  branch: Branch | null;
   unreadNotifications: number;
   searchInputRef: React.RefObject<HTMLInputElement>;
 }
@@ -152,7 +152,7 @@ const CallCenterTopBar: React.FC<CallCenterTopBarProps> = ({
                   Branch:
                 </Typography>
                 <Chip
-                  label={branch.name}
+                  label={branch?.name || 'No Branch'}
                   size="small"
                   color="primary"
                   variant="outlined"
