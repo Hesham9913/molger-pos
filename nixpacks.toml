@@ -1,0 +1,19 @@
+[variables]
+NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"
+
+[phases.install]
+dependsOn = []
+cmds = [
+    "npm ci --include=dev",
+    "cd client && npm ci --legacy-peer-deps"
+]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = [
+    "cd client && npm run build"
+]
+
+[start]
+cmd = "npm start"

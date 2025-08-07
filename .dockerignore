@@ -17,4 +17,6 @@ coverage
 client/node_modules
 client/build
 client/.cache
-client/.parcel-cache 
+client/.parcel-cache
+Dockerfile
+.dockerignore
