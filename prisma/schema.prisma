@@ -1,0 +1,949 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================
+// AUTHENTICATION & USER MANAGEMENT
+// =====================================================
+
+model Role {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  displayName   String
+  description   String?
+  isSystemRole  Boolean  @default(false)
+  permissions   Json     @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  users         UserRole[]
+  staffRoles    StaffRole[]
+  staffBranches StaffBranch[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  displayName String
+  description String?
+  resource    String
+  action      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  users       UserPermission[]
+  staffPermissions StaffPermission[]
+
+  @@map("permissions")
+}
+
+model User {
+  id                String   @id @default(uuid())
+  username          String?  @unique
+  email             String   @unique
+  phone             String?
+  passwordHash      String
+  passwordSalt      String
+  firstName         String
+  lastName          String
+  avatarUrl         String?
+  isActive          Boolean  @default(true)
+  isVerified        Boolean  @default(false)
+  emailVerifiedAt   DateTime?
+  phoneVerifiedAt   DateTime?
+  lastLoginAt       DateTime?
+  loginAttempts     Int      @default(0)
+  lockedUntil       DateTime?
+  timezone          String   @default("UTC")
+  language          String   @default("en")
+  preferences       Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  roles             UserRole[]
+  permissions       UserPermission[]
+  apiTokens         ApiToken[]
+  passwordResets    PasswordReset[]
+  loginSessions     LoginSession[]
+  activityLogs      UserActivityLog[]
+  staff             Staff?
+  assignedRoles     UserRole[] @relation("AssignedBy")
+  assignedPermissions UserPermission[] @relation("GrantedBy")
+  staffRoles        StaffRole[] @relation("AssignedByStaff")
+  staffPermissions  StaffPermission[] @relation("GrantedByStaff")
+  shiftSchedules    ShiftSchedule[] @relation("CreatedBy")
+  leaveRequests     StaffLeaveRequest[] @relation("ApprovedBy")
+  performance       StaffPerformance[] @relation("EvaluatedBy")
+
+  @@map("users")
+}
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  id           String   @id @default(uuid())
+  userId       String
+  permissionId String
+  grantedBy    String?
+  grantedAt    DateTime @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantedByUser User?     @relation("GrantedBy", fields: [grantedBy], references: [id])
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model ApiToken {
+  id         String   @id @default(uuid())
+  userId     String
+  name       String
+  tokenHash  String   @unique
+  tokenSalt  String
+  permissions Json    @default("[]")
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_tokens")
+}
+
+model PasswordReset {
+  id         String   @id @default(uuid())
+  userId     String
+  email      String
+  tokenHash  String   @unique
+  tokenSalt  String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model LoginSession {
+  id              String   @id @default(uuid())
+  userId          String
+  sessionTokenHash String  @unique
+  sessionTokenSalt String
+  ipAddress       String?
+  userAgent       String?
+  deviceInfo      Json?
+  locationInfo    Json?
+  isActive        Boolean  @default(true)
+  lastActivityAt  DateTime @default(now())
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLogs    UserActivityLog[]
+
+  @@map("login_sessions")
+}
+
+model UserActivityLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  sessionId    String?
+  action       String
+  resourceType String?
+  resourceId   String?
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  session      LoginSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@map("user_activity_logs")
+}
+
+// =====================================================
+// BRANCH & STAFF MANAGEMENT
+// =====================================================
+
+model Branch {
+  id           String   @id @default(uuid())
+  name         String
+  code         String   @unique
+  description  String?
+  address      String
+  city         String
+  state        String?
+  country      String
+  postalCode   String?
+  phone        String?
+  email        String?
+  website      String?
+  latitude     Decimal?
+  longitude    Decimal?
+  timezone     String   @default("UTC")
+  currency     String   @default("SAR")
+  language     String   @default("en")
+  isActive     Boolean  @default(true)
+  isMainBranch Boolean  @default(false)
+  settings     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  hours        BranchHour[]
+  branchSettings BranchSetting[]
+  staff        StaffBranch[]
+  shifts       Shift[]
+  shiftSchedules ShiftSchedule[]
+  shiftLogs    ShiftLog[]
+  staffRoles   StaffRole[]
+  staffPermissions StaffPermission[]
+  staffAttendance StaffAttendance[]
+  staffPerformance StaffPerformance[]
+
+  @@map("branches")
+}
+
+model BranchHour {
+  id        String   @id @default(uuid())
+  branchId  String
+  dayOfWeek Int
+  openTime  DateTime?
+  closeTime DateTime?
+  isClosed  Boolean  @default(false)
+  is24Hours Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, dayOfWeek])
+  @@map("branch_hours")
+}
+
+model BranchSetting {
+  id          String   @id @default(uuid())
+  branchId    String
+  settingKey  String
+  settingValue Json?
+  settingType String   @default("string")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, settingKey])
+  @@map("branch_settings")
+}
+
+model Staff {
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  employeeId                String?  @unique
+  firstName                 String
+  lastName                  String
+  email                     String   @unique
+  phone                     String?
+  dateOfBirth               DateTime?
+  hireDate                  DateTime
+  terminationDate           DateTime?
+  position                  String?
+  department                String?
+  salary                    Decimal?
+  hourlyRate                Decimal?
+  emergencyContactName      String?
+  emergencyContactPhone     String?
+  emergencyContactRelationship String?
+  address                   String?
+  city                      String?
+  state                     String?
+  country                   String?
+  postalCode                String?
+  isActive                  Boolean  @default(true)
+  isFullTime                Boolean  @default(true)
+  maxHoursPerWeek           Int?
+  preferences               Json     @default("{}")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  deletedAt                 DateTime?
+
+  // Relations
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branches                  StaffBranch[]
+  shiftSchedules            ShiftSchedule[]
+  shiftLogs                 ShiftLog[]
+  roles                     StaffRole[]
+  permissions               StaffPermission[]
+  attendance                StaffAttendance[]
+  leaveRequests             StaffLeaveRequest[]
+  performance               StaffPerformance[]
+
+  @@map("staff")
+}
+
+model StaffBranch {
+  id         String   @id @default(uuid())
+  staffId    String
+  branchId   String
+  roleId     String
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  isPrimary  Boolean  @default(false)
+  permissions Json    @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, branchId, roleId])
+  @@map("staff_branches")
+}
+
+model Shift {
+  id                    String   @id @default(uuid())
+  branchId              String
+  name                  String
+  description           String?
+  startTime             DateTime
+  endTime               DateTime
+  breakDurationMinutes  Int      @default(0)
+  color                 String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  branch                Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  schedules             ShiftSchedule[]
+
+  @@map("shifts")
+}
+
+model ShiftSchedule {
+  id            String   @id @default(uuid())
+  staffId       String
+  branchId      String
+  shiftId       String
+  scheduledDate DateTime
+  startTime     DateTime
+  endTime       DateTime
+  breakStartTime DateTime?
+  breakEndTime   DateTime?
+  notes         String?
+  status        String   @default("scheduled")
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  staff         Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  shift         Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  createdByUser User?    @relation("CreatedBy", fields: [createdBy], references: [id])
+  logs          ShiftLog[]
+
+  @@map("shift_schedules")
+}
+
+model ShiftLog {
+  id              String   @id @default(uuid())
+  shiftScheduleId String
+  staffId         String
+  branchId        String
+  logType         String
+  timestamp       DateTime
+  ipAddress       String?
+  deviceInfo      Json?
+  locationInfo    Json?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  shiftSchedule   ShiftSchedule @relation(fields: [shiftScheduleId], references: [id], onDelete: Cascade)
+  staff           Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch          Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("shift_logs")
+}
+
+model StaffRole {
+  id         String   @id @default(uuid())
+  staffId    String
+  roleId     String
+  branchId   String
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  expiresAt  DateTime?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedByStaff", fields: [assignedBy], references: [id])
+
+  @@unique([staffId, roleId, branchId])
+  @@map("staff_roles")
+}
+
+model StaffPermission {
+  id           String   @id @default(uuid())
+  staffId      String
+  permissionId String
+  branchId     String
+  grantedBy    String?
+  grantedAt    DateTime @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  staff        Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  branch       Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  grantedByUser User?     @relation("GrantedByStaff", fields: [grantedBy], references: [id])
+
+  @@unique([staffId, permissionId, branchId])
+  @@map("staff_permissions")
+}
+
+model StaffAttendance {
+  id                  String   @id @default(uuid())
+  staffId             String
+  branchId            String
+  date                DateTime
+  clockInTime         DateTime?
+  clockOutTime        DateTime?
+  totalHours          Decimal?
+  breakDurationMinutes Int     @default(0)
+  status              String   @default("present")
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  staff               Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch              Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@map("staff_attendance")
+}
+
+model StaffLeaveRequest {
+  id              String   @id @default(uuid())
+  staffId         String
+  leaveType       String
+  startDate       DateTime
+  endDate         DateTime
+  startTime       DateTime?
+  endTime         DateTime?
+  totalDays       Decimal?
+  reason          String?
+  status          String   @default("pending")
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  approvedByUser  User?    @relation("ApprovedBy", fields: [approvedBy], references: [id])
+
+  @@map("staff_leave_requests")
+}
+
+model StaffPerformance {
+  id                      String   @id @default(uuid())
+  staffId                 String
+  branchId                String
+  evaluationDate          DateTime
+  evaluatorId             String
+  performanceScore        Decimal?
+  attendanceScore         Decimal?
+  qualityScore            Decimal?
+  teamworkScore           Decimal?
+  overallScore            Decimal?
+  strengths               String?
+  areasForImprovement     String?
+  goals                   String?
+  comments                String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  staff                   Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch                  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  evaluator               User     @relation("EvaluatedBy", fields: [evaluatorId], references: [id])
+
+  @@map("staff_performance")
+}
+
+// =====================================================
+// PRODUCTS & MENU MANAGEMENT
+// =====================================================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  nameAr      String?
+  description String?
+  descriptionAr String?
+  imageUrl    String?
+  icon        String?
+  color       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id                      String   @id @default(uuid())
+  sku                     String?  @unique
+  name                    String
+  nameAr                  String?
+  description             String?
+  descriptionAr           String?
+  shortDescription        String?
+  categoryId              String
+  brand                   String?
+  barcode                 String?
+  weight                  Decimal?
+  dimensions              Json?
+  isActive                Boolean  @default(true)
+  isFeatured              Boolean  @default(false)
+  isAvailableOnline       Boolean  @default(true)
+  isAvailablePos          Boolean  @default(true)
+  isAvailableCallCenter   Boolean  @default(true)
+  preparationTimeMinutes  Int      @default(0)
+  allergens               Json     @default("[]")
+  nutritionalInfo         Json?
+  tags                    Json     @default("[]")
+  sortOrder               Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  category                Category @relation(fields: [categoryId], references: [id])
+  variations              ProductVariation[]
+  images                  ProductImage[]
+  tagAssignments          ProductTagAssignment[]
+  modifiers               ProductModifier[]
+  allergenAssignments     ProductAllergenAssignment[]
+  comboItems              ComboItem[]
+  menuItems               MenuItem[]
+  recipes                 Recipe[]
+
+  @@map("products")
+}
+
+model ProductVariation {
+  id          String   @id @default(uuid())
+  productId   String
+  name        String
+  nameAr      String?
+  sku         String?  @unique
+  barcode     String?
+  description String?
+  descriptionAr String?
+  weight      Decimal?
+  dimensions  Json?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images      ProductImage[]
+  comboItems  ComboItem[]
+  menuItems   MenuItem[]
+  recipes     Recipe[]
+
+  @@map("product_variations")
+}
+
+model ProductImage {
+  id           String   @id @default(uuid())
+  productId    String
+  variationId  String?
+  imageUrl     String
+  thumbnailUrl String?
+  altText      String?
+  sortOrder    Int      @default(0)
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation    ProductVariation? @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model ProductTag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameAr      String?
+  color       String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  assignments ProductTagAssignment[]
+
+  @@map("product_tags")
+}
+
+model ProductTagAssignment {
+  id        String   @id @default(uuid())
+  productId String
+  tagId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       ProductTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, tagId])
+  @@map("product_tag_assignments")
+}
+
+model Modifier {
+  id             String   @id @default(uuid())
+  name           String
+  nameAr         String?
+  description    String?
+  descriptionAr  String?
+  type           String   @default("single")
+  minSelections  Int      @default(0)
+  maxSelections  Int?
+  isRequired     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  options        ModifierOption[]
+  products       ProductModifier[]
+
+  @@map("modifiers")
+}
+
+model ModifierOption {
+  id              String   @id @default(uuid())
+  modifierId      String
+  name            String
+  nameAr          String?
+  description     String?
+  descriptionAr   String?
+  priceAdjustment Decimal  @default(0)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  modifier        Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+
+  @@map("modifier_options")
+}
+
+model ProductModifier {
+  id         String   @id @default(uuid())
+  productId  String
+  modifierId String
+  isRequired Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifier   Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, modifierId])
+  @@map("product_modifiers")
+}
+
+model Combo {
+  id          String   @id @default(uuid())
+  name        String
+  nameAr      String?
+  description String?
+  descriptionAr String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  items       ComboItem[]
+
+  @@map("combos")
+}
+
+model ComboItem {
+  id                String   @id @default(uuid())
+  comboId           String
+  productId         String
+  productVariationId String?
+  quantity          Int      @default(1)
+  isRequired        Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  combo             Combo    @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation         ProductVariation? @relation(fields: [productVariationId], references: [id], onDelete: Cascade)
+
+  @@map("combo_items")
+}
+
+model Menu {
+  id          String   @id @default(uuid())
+  name        String
+  nameAr      String?
+  description String?
+  descriptionAr String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  groups      MenuGroup[]
+  items       MenuItem[]
+
+  @@map("menus")
+}
+
+model MenuGroup {
+  id          String   @id @default(uuid())
+  menuId      String
+  name        String
+  nameAr      String?
+  description String?
+  descriptionAr String?
+  imageUrl    String?
+  color       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items       MenuItem[]
+
+  @@map("menu_groups")
+}
+
+model MenuItem {
+  id                String   @id @default(uuid())
+  menuId            String
+  menuGroupId       String
+  productId         String
+  productVariationId String?
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menuGroup         MenuGroup @relation(fields: [menuGroupId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation         ProductVariation? @relation(fields: [productVariationId], references: [id], onDelete: Cascade)
+
+  @@unique([menuId, productId, productVariationId])
+  @@map("menu_items")
+}
+
+model Recipe {
+  id                    String   @id @default(uuid())
+  productId             String
+  productVariationId    String?
+  name                  String
+  nameAr                String?
+  description           String?
+  descriptionAr         String?
+  instructions          String?
+  instructionsAr        String?
+  preparationTimeMinutes Int     @default(0)
+  cookingTimeMinutes    Int      @default(0)
+  servings              Int      @default(1)
+  difficultyLevel       String   @default("medium")
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  product               Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation             ProductVariation? @relation(fields: [productVariationId], references: [id], onDelete: Cascade)
+  items                 RecipeItem[]
+
+  @@map("recipes")
+}
+
+model RecipeItem {
+  id              String   @id @default(uuid())
+  recipeId        String
+  ingredientName  String
+  ingredientNameAr String?
+  quantity        Decimal
+  unit            String
+  notes           String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  recipe          Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_items")
+}
+
+model ProductAllergen {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameAr      String?
+  description String?
+  descriptionAr String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  assignments ProductAllergenAssignment[]
+
+  @@map("product_allergens")
+}
+
+model ProductAllergenAssignment {
+  id         String   @id @default(uuid())
+  productId  String
+  allergenId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  allergen   ProductAllergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, allergenId])
+  @@map("product_allergen_assignments")
+}
