@@ -8,11 +8,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Components
 import Login from './pages/Login';
 import CallCenter from './pages/CallCenter';
+import CallCenterEnhanced from './pages/CallCenterEnhanced';
 import POS from './pages/POS';
+import POSEnhanced from './pages/POSEnhanced';
+import MenuManagement from './pages/MenuManagement';
 import Inventory from './pages/Inventory';
 import Reporting from './pages/Reporting';
 import Admin from './pages/Admin';
 import Layout from './components/Layout';
+import ConsoleLayout from './layouts/ConsoleLayout';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
@@ -94,9 +98,9 @@ function App() {
                 path="/call-center"
                 element={
                   isAuthenticated ? (
-                    <Layout>
-                      <CallCenter />
-                    </Layout>
+                    <ConsoleLayout>
+                      <CallCenterEnhanced />
+                    </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
                   )
@@ -106,9 +110,21 @@ function App() {
                 path="/pos"
                 element={
                   isAuthenticated ? (
-                    <Layout>
-                      <POS />
-                    </Layout>
+                    <ConsoleLayout>
+                      <POSEnhanced />
+                    </ConsoleLayout>
+                  ) : (
+                    <Navigate to="/login" />
+                  )
+                }
+              />
+              <Route
+                path="/menu"
+                element={
+                  isAuthenticated ? (
+                    <ConsoleLayout>
+                      <MenuManagement />
+                    </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
                   )
@@ -118,21 +134,21 @@ function App() {
                 path="/inventory"
                 element={
                   isAuthenticated ? (
-                    <Layout>
+                    <ConsoleLayout>
                       <Inventory />
-                    </Layout>
+                    </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
                   )
                 }
               />
               <Route
-                path="/reporting"
+                path="/reports"
                 element={
                   isAuthenticated ? (
-                    <Layout>
+                    <ConsoleLayout>
                       <Reporting />
-                    </Layout>
+                    </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
                   )
@@ -142,9 +158,9 @@ function App() {
                 path="/admin"
                 element={
                   isAuthenticated ? (
-                    <Layout>
+                    <ConsoleLayout>
                       <Admin />
-                    </Layout>
+                    </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
                   )
