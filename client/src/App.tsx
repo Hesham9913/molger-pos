@@ -66,19 +66,26 @@ function App() {
   const { initializeCallCenter } = useCallCenterStore();
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      // Connect to socket
-      connect(user.id, user.branchId, user.role);
-      
-      // Initialize notifications
-      initializeNotifications();
-      
-      // Initialize call center state
-      initializeCallCenter(user, user.branchId);
-      
-      return () => {
-        disconnect();
-      };
+    if (isAuthenticated && user && user.id && user.branchId && user.role) {
+      try {
+        // Initialize call center state first
+        initializeCallCenter(user, user.branchId);
+        
+        // Initialize notifications
+        initializeNotifications();
+        
+        // Connect to socket after a small delay to ensure everything is ready
+        const timer = setTimeout(() => {
+          connect(user.id, user.branchId, user.role);
+        }, 100);
+        
+        return () => {
+          clearTimeout(timer);
+          disconnect();
+        };
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      }
     }
   }, [isAuthenticated, user, connect, disconnect, initializeNotifications, initializeCallCenter]);
 

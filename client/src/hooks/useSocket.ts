@@ -21,13 +21,20 @@ export const useSocket = (): UseSocketReturn => {
     }
 
     // Create new socket connection
-    const newSocket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
+    // In production, use the same origin as the app, in development use localhost
+    const socketUrl = process.env.NODE_ENV === 'production' 
+      ? window.location.origin 
+      : (process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000');
+      
+    const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
+      forceNew: true,
+      timeout: 5000,
     });
 
     // Connection event handlers
