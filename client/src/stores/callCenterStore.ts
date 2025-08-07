@@ -99,17 +99,56 @@ export const useCallCenterStore = create<CallCenterStore>()(
       // Initialize
       initializeCallCenter: (user: User, branchId: string) => {
         try {
+          // Create a default branch object if none exists
+          const defaultBranch = {
+            id: branchId,
+            name: 'Main Branch',
+            address: '',
+            phone: '',
+            managerId: user.id,
+            isActive: true,
+            settings: {
+              timezone: 'UTC',
+              currency: 'USD',
+              taxRate: 0,
+              deliveryFee: 0,
+              minimumOrderAmount: 0,
+              operatingHours: {},
+              notifications: { email: true, sms: true, push: true }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
           set({ 
             currentAgent: user,
-            currentBranch: null // Will be set separately when branch data is loaded
+            currentBranch: defaultBranch
           });
           // Load initial data here
         } catch (error) {
           console.error('Error in initializeCallCenter:', error);
-          // Set minimal safe state
+          // Set minimal safe state with default branch
           set({ 
             currentAgent: user,
-            currentBranch: null
+            currentBranch: {
+              id: branchId,
+              name: 'Default Branch',
+              address: '',
+              phone: '',
+              managerId: user.id,
+              isActive: true,
+              settings: {
+                timezone: 'UTC',
+                currency: 'USD',
+                taxRate: 0,
+                deliveryFee: 0,
+                minimumOrderAmount: 0,
+                operatingHours: {},
+                notifications: { email: true, sms: true, push: true }
+              },
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
           });
         }
       },

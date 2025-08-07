@@ -108,7 +108,7 @@ const CallCenter: React.FC = () => {
   }, [socket, showNotification, handleOrderCreated, handleOrderUpdated, handleCustomerUpdated, handlePaymentProcessed, handleInventoryUpdated]);
 
   // Loading state
-  if (!currentAgent || !currentBranch) {
+  if (!currentAgent) {
     return (
       <Box sx={{ 
         display: 'flex', 

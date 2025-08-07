@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 
 type NotificationType = 'success' | 'error' | 'warning' | 'info';
@@ -11,6 +11,7 @@ interface NotificationOptions {
 }
 
 export const useNotifications = () => {
+  const isInitialized = useRef(false);
   const showNotification = useCallback((
     message: string, 
     type: NotificationType = 'info', 
@@ -71,6 +72,11 @@ export const useNotifications = () => {
   }, []);
 
   const initializeNotifications = useCallback(() => {
+    if (isInitialized.current) {
+      return; // Already initialized, skip
+    }
+    
+    isInitialized.current = true;
     // Initialize any notification settings
     // This could include setting up sound notifications, etc.
     console.log('Notifications initialized');
