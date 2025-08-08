@@ -17,11 +17,14 @@ RUN npm config set fetch-retry-maxtimeout 120000
 COPY package*.json ./
 COPY client/package*.json ./client/
 
+# Copy Prisma schema first (needed for postinstall script)
+COPY prisma ./prisma/
+
 # Install dependencies with retry logic
 RUN npm install --only=production --no-audit --no-fund
 RUN cd client && npm install --legacy-peer-deps --no-audit --no-fund --network-timeout=100000
 
-# Copy source code
+# Copy remaining source code
 COPY . .
 
 # Generate Prisma client

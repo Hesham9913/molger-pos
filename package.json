@@ -9,7 +9,6 @@
     "client:dev": "cd client && npm start",
     "build": "cd client && npm install --legacy-peer-deps && npm run build",
     "start": "prisma generate && node server/index.js",
-    "postinstall": "prisma generate",
     "railway:start": "prisma generate && prisma migrate deploy && node server/index.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
