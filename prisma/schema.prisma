@@ -90,6 +90,15 @@ model User {
   shiftSchedules    ShiftSchedule[] @relation("CreatedBy")
   leaveRequests     StaffLeaveRequest[] @relation("ApprovedBy")
   performance       StaffPerformance[] @relation("EvaluatedBy")
+  
+  // Customer relations
+  customersBlacklisted Customer[] @relation("CustomerBlacklistedBy")
+  customersCreated     Customer[] @relation("CustomerCreatedBy")
+  customersUpdated     Customer[] @relation("CustomerUpdatedBy")
+  customerAddressesCreated CustomerAddress[] @relation("CustomerAddressCreatedBy")
+  customerAddressesUpdated CustomerAddress[] @relation("CustomerAddressUpdatedBy")
+  customerTagAssignments   CustomerTagAssignment[] @relation("CustomerTagAssignedBy")
+  customerActivityLogs     CustomerActivityLog[] @relation("CustomerActivityPerformedBy")
 
   @@map("users")
 }
@@ -253,6 +262,7 @@ model Branch {
   staffPermissions StaffPermission[]
   staffAttendance StaffAttendance[]
   staffPerformance StaffPerformance[]
+  favoriteByCustomers Customer[] @relation("CustomerFavoriteBranch")
 
   @@map("branches")
 }
@@ -553,6 +563,161 @@ model StaffPerformance {
 }
 
 // =====================================================
+// CUSTOMERS & DELIVERY MANAGEMENT
+// =====================================================
+
+model DeliveryZone {
+  id                    String   @id @default(uuid())
+  name                  String   @unique
+  description           String?
+  deliveryFee           Decimal  @default(0.00) @db.Decimal(10, 2)
+  minimumOrderAmount    Decimal  @default(0.00) @db.Decimal(10, 2)
+  estimatedDeliveryTime Int      @default(30) // in minutes
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  customerAddresses     CustomerAddress[]
+
+  @@map("delivery_zones")
+}
+
+model CustomerTag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  color       String   @default("#1976d2")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  assignments CustomerTagAssignment[]
+
+  @@map("customer_tags")
+}
+
+model Customer {
+  id                   String   @id @default(uuid())
+  name                 String
+  phone                String   @unique
+  email                String?
+  notes                String?
+  
+  // Business Logic Fields
+  totalOrders          Int      @default(0)
+  totalSpent           Decimal  @default(0.00) @db.Decimal(12, 2)
+  totalDiscounts       Decimal  @default(0.00) @db.Decimal(12, 2)
+  accountBalance       Decimal  @default(0.00) @db.Decimal(12, 2)
+  lastOrderAt          DateTime?
+  
+  // Favorite tracking
+  favoriteProductId    String?
+  favoriteBranchId     String?
+  
+  // Account Management
+  houseAccountEnabled  Boolean  @default(false)
+  isBlacklisted        Boolean  @default(false)
+  blacklistReason      String?
+  blacklistedAt        DateTime?
+  blacklistedBy        String?
+  
+  // Customer Preferences
+  preferredLanguage    String   @default("en")
+  marketingConsent     Boolean  @default(true)
+  smsConsent           Boolean  @default(true)
+  emailConsent         Boolean  @default(true)
+  
+  // Audit Fields
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+  createdBy            String?
+  updatedBy            String?
+
+  // Relations
+  favoriteProduct      Product? @relation("CustomerFavoriteProduct", fields: [favoriteProductId], references: [id])
+  favoriteBranch       Branch?  @relation("CustomerFavoriteBranch", fields: [favoriteBranchId], references: [id])
+  blacklistedByUser    User?    @relation("CustomerBlacklistedBy", fields: [blacklistedBy], references: [id])
+  createdByUser        User?    @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser        User?    @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id])
+  addresses            CustomerAddress[]
+  tagAssignments       CustomerTagAssignment[]
+  activityLogs         CustomerActivityLog[]
+
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id               String   @id @default(uuid())
+  customerId       String
+  deliveryZoneId   String
+  name             String?
+  detailedAddress  String
+  additionalInfo   String?
+  latitude         Decimal? @db.Decimal(10, 8)
+  longitude        Decimal? @db.Decimal(11, 8)
+  isDefault        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+  createdBy        String?
+  updatedBy        String?
+
+  // Relations
+  customer         Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  deliveryZone     DeliveryZone @relation(fields: [deliveryZoneId], references: [id])
+  createdByUser    User?        @relation("CustomerAddressCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser    User?        @relation("CustomerAddressUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("customer_addresses")
+}
+
+model CustomerTagAssignment {
+  id         String   @id @default(uuid())
+  customerId String
+  tagId      String
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag        CustomerTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedByUser User?   @relation("CustomerTagAssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([customerId, tagId])
+  @@map("customer_tag_assignments")
+}
+
+model CustomerActivityLog {
+  id          String   @id @default(uuid())
+  customerId  String
+  action      String
+  entityType  String
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+  notes       String?
+  performedBy String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  performedByUser User? @relation("CustomerActivityPerformedBy", fields: [performedBy], references: [id])
+
+  @@map("customer_activity_logs")
+}
+
+// =====================================================
 // PRODUCTS & MENU MANAGEMENT
 // =====================================================
 
@@ -618,6 +783,7 @@ model Product {
   comboItems              ComboItem[]
   menuItems               MenuItem[]
   recipes                 Recipe[]
+  favoriteByCustomers     Customer[] @relation("CustomerFavoriteProduct")
 
   @@map("products")
 }

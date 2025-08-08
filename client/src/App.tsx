@@ -12,6 +12,8 @@ import CallCenterEnhanced from './pages/CallCenterEnhanced';
 import POS from './pages/POS';
 import POSEnhanced from './pages/POSEnhanced';
 import MenuManagement from './pages/MenuManagement';
+import Customers from './pages/Customers';
+import CustomerDetail from './pages/CustomerDetail';
 import Inventory from './pages/Inventory';
 import Reporting from './pages/Reporting';
 import Admin from './pages/Admin';
@@ -124,6 +126,30 @@ function App() {
                   isAuthenticated ? (
                     <ConsoleLayout>
                       <MenuManagement />
+                    </ConsoleLayout>
+                  ) : (
+                    <Navigate to="/login" />
+                  )
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  isAuthenticated ? (
+                    <ConsoleLayout>
+                      <Customers />
+                    </ConsoleLayout>
+                  ) : (
+                    <Navigate to="/login" />
+                  )
+                }
+              />
+              <Route
+                path="/customers/:id"
+                element={
+                  isAuthenticated ? (
+                    <ConsoleLayout>
+                      <CustomerDetail />
                     </ConsoleLayout>
                   ) : (
                     <Navigate to="/login" />
