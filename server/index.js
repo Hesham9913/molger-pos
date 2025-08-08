@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
+const { datasourceUrl } = require('./prisma');
 
 const app = express();
 const server = http.createServer(app);
@@ -166,6 +167,9 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.io server ready for real-time connections`);
+  if (!process.env.DATABASE_URL) {
+    console.warn('Warning: DATABASE_URL is not set. Using resolved datasource URL:', datasourceUrl || 'undefined');
+  }
 });
 
 module.exports = { app, io, connectedUsers, userSockets };

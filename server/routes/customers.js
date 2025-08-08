@@ -1,9 +1,9 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../prisma');
 const { body, validationResult, query, param } = require('express-validator');
 const router = express.Router();
 
-const prisma = new PrismaClient();
+// prisma provided by central prisma module
 
 // Validation middleware
 const validateRequest = (req, res, next) => {
