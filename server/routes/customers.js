@@ -163,15 +163,6 @@ router.get('/:id', [
             tag: { select: { id: true, name: true, color: true, description: true } },
             assignedByUser: { select: { id: true, firstName: true, lastName: true } }
           }
-        },
-        orders: {
-          where: { deletedAt: null },
-          select: {
-            id: true, orderNumber: true, totalAmount: true, 
-            status: true, orderType: true, createdAt: true
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10
         }
       }
     });
@@ -183,7 +174,9 @@ router.get('/:id', [
       });
     }
 
-    res.json({ success: true, data: customer });
+    // Ensure the response always contains an orders array for the UI
+    const responsePayload = { ...customer, orders: [] };
+    res.json({ success: true, data: responsePayload });
   } catch (error) {
     console.error('Error fetching customer:', error);
     res.status(500).json({
