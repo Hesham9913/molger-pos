@@ -23,4 +23,8 @@ npm run build
 
 cd ..
 
+# Generate Prisma client
+echo "🔧 Generating Prisma client..."
+npx prisma generate
+
 echo "✅ Railway build completed successfully!"

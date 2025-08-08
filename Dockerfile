@@ -24,6 +24,9 @@ RUN cd client && npm install --legacy-peer-deps --no-audit --no-fund --network-t
 # Copy source code
 COPY . .
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Build the client
 RUN cd client && npm run build
 

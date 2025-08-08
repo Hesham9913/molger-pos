@@ -12,9 +12,10 @@ cmds = [
 [phases.build]
 dependsOn = ["install"]
 cmds = [
-    "cd client && npm run build"
+    "cd client && npm run build",
+    "npx prisma generate"
 ]
 
 [start]
-cmd = "npm start"
+cmd = "npm run railway:start"
 
