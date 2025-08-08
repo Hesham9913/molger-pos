@@ -67,12 +67,23 @@ const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
       setLoading(true);
       setError(null);
 
+      // Format phone number with country code if not already present
+      let formattedPhone = data.phone;
+      if (formattedPhone && !formattedPhone.startsWith('+')) {
+        // Remove any existing country code and prepend Egypt code
+        const cleanPhone = formattedPhone.replace(/^\+?20/, '').replace(/^0/, '');
+        formattedPhone = `+20${cleanPhone}`;
+      }
+
       const response = await fetch('/api/customers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          phone: formattedPhone
+        }),
       });
 
       const result = await response.json();
@@ -187,16 +198,16 @@ const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
                 {...register('phone', {
                   required: 'Phone number is required',
                   pattern: {
-                    value: /^\+?[\d\s\-\(\)]{8,20}$/,
-                    message: 'Please enter a valid phone number'
+                    value: /^[\d\s\-\(\)]{8,15}$/,
+                    message: 'Please enter a valid phone number (8-15 digits)'
                   },
                   minLength: {
                     value: 8,
                     message: 'Phone number must be at least 8 digits'
                   },
                   maxLength: {
-                    value: 20,
-                    message: 'Phone number must be less than 20 characters'
+                    value: 15,
+                    message: 'Phone number must be less than 15 characters'
                   }
                 })}
                 error={!!errors.phone}
