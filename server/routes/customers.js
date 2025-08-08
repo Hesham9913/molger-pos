@@ -196,19 +196,43 @@ router.get('/:id', [
 
 // POST /api/customers - Create new customer
 router.post('/', [
-  body('name').notEmpty().trim().isLength({ min: 1, max: 255 }),
-  body('phone').notEmpty().trim().matches(/^\+?[\d\s\-\(\)]+$/).isLength({ min: 8, max: 20 }),
-  body('email').optional({ nullable: true }).isEmail().normalizeEmail(),
-  body('notes').optional({ nullable: true }).trim().isLength({ max: 1000 })
+  body('name')
+    .notEmpty()
+    .withMessage('Name is required')
+    .trim()
+    .isLength({ min: 1, max: 255 }),
+  body('phone')
+    .notEmpty()
+    .withMessage('Phone is required')
+    .trim()
+    // Normalize phone to international format if missing country code (default +20)
+    .customSanitizer((value) => {
+      if (!value) return value;
+      let v = String(value).replace(/[^\d+]/g, '');
+      if (!v.startsWith('+')) {
+        // remove leading 0s then prepend Egypt code as a sensible default
+        v = '+20' + v.replace(/^0+/, '');
+      }
+      return v;
+    })
+    .matches(/^\+\d{8,20}$/)
+    .withMessage('Please enter a valid phone number'),
+  body('email')
+    .optional({ nullable: true, checkFalsy: true })
+    .isEmail()
+    .withMessage('Invalid email')
+    .normalizeEmail(),
+  body('notes')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 1000 })
 ], validateRequest, async (req, res) => {
   try {
     const { name, phone, email, notes } = req.body;
     const userId = req.user?.id;
 
     // Check if phone already exists
-    const existingCustomer = await prisma.customer.findUnique({
-      where: { phone }
-    });
+    const existingCustomer = await prisma.customer.findUnique({ where: { phone } });
 
     if (existingCustomer) {
       return res.status(409).json({

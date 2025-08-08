@@ -88,12 +88,12 @@ const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
 
       const result = await response.json();
 
-      if (!result.success) {
+      if (!response.ok || !result.success) {
         if (result.field === 'phone' && response.status === 409) {
           setError('This phone number is already registered with another customer.');
           return;
         }
-        throw new Error(result.message || 'Failed to create customer');
+        throw new Error(result.message || result.error || 'Failed to create customer');
       }
 
       onSubmit(result.data);
